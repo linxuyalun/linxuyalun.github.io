@@ -5,7 +5,7 @@ node_js:
 cache: npm
 branches:
   only:
-    - master # build master branch only
+    - hexo-source # store source code of hexo in hexo-source branch
 script:
   - hexo generate # generate static files
 deploy:
@@ -16,3 +16,7 @@ deploy:
   on:
     branch: master
   local-dir: public
+target_branch: master # generate static files to master
+on:
+  branch: hexo-source # source code of hexo
+local-dir: public
