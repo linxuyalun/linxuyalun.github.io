@@ -8,6 +8,11 @@ subtitle: '激水之疾，至于漂石者，势也。'
 author: Lin Hsu Yalun
 language: zh
 
+SEOTitle: Alan's Blog
+email: froggy2818@gmail.com
+description: "Alan's Blog"
+
+
 # Build settings
 anchorjs: true   # if you want to customize anchor. check out line:181 of `post.html`
 
