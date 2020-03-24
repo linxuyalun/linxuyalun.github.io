@@ -14,9 +14,6 @@ deploy:
   github-token: $GH_TOKEN
   keep-history: true
   on:
-    branch: master
+    branch: hexo-source
+  target_branch: master # generate static files to master
   local-dir: public
-target_branch: master # generate static files to master
-on:
-  branch: hexo-source # source code of hexo
-local-dir: public
