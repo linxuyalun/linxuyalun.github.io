@@ -1,2 +1,0 @@
-# linxuyalun.github.io
-Blog
