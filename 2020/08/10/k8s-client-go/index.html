@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="google-site-verification" content="xBT4GhYoi5qRD5tr338pgPM5OWHHIDR6mNg1a3euekI" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Alan&#39;s Blog">
+    <meta name="keyword"  content="">
+    <link rel="shortcut icon" href="/img/favicon.ico">
+
+    <title>
+        
+        Kubernetes 源码剖析 -- Client-go - Alan&#39;s Blog
+        
+    </title>
+
+    <!-- Custom CSS -->
+    
+<link rel="stylesheet" href="/css/aircloud.css">
+
+    
+<link rel="stylesheet" href="/css/gitment.css">
+
+    <!--<link rel="stylesheet" href="https://imsun.github.io/gitment/style/default.css">-->
+    <link href="//at.alicdn.com/t/font_620856_pl6z7sid89qkt9.css" rel="stylesheet" type="text/css">
+    <!-- ga & ba script hoook -->
+    <script></script>
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+
+<div class="site-nav-toggle" id="site-nav-toggle">
+    <button>
+        <span class="btn-bar"></span>
+        <span class="btn-bar"></span>
+        <span class="btn-bar"></span>
+    </button>
+</div>
+
+<div class="index-about">
+    <i> 激水之疾，至于漂石者，势也。 </i>
+</div>
+
+<div class="index-container">
+    
+    <div class="index-left">
+        
+<div class="nav" id="nav">
+    <div class="avatar-name">
+        <div class="avatar ">
+            <img src="/img/avatar.jpg" />
+        </div>
+        <div class="name">
+            <i>Lin Hsu Yalun</i>
+        </div>
+    </div>
+    <div class="contents" id="nav-content">
+        <ul>
+            <li >
+                <a href="/">
+                    <i class="iconfont icon-shouye1"></i>
+                    <span>主页</span>
+                </a>
+            </li>
+            <li >
+                <a href="/tags">
+                    <i class="iconfont icon-biaoqian1"></i>
+                    <span>标签</span>
+                </a>
+            </li>
+            <li >
+                <a href="/archives">
+                    <i class="iconfont icon-guidang2"></i>
+                    <span>存档</span>
+                </a>
+            </li>
+            <li >
+                <a href="/about/">
+                    <i class="iconfont icon-guanyu2"></i>
+                    <span>关于</span>
+                </a>
+            </li>
+            
+        </ul>
+    </div>
+    
+        <div id="toc" class="toc-article">
+    <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#源码结构"><span class="toc-text">源码结构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Client-客户端对象"><span class="toc-text">Client 客户端对象</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Kubeconfig"><span class="toc-text">Kubeconfig</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#RESTClient"><span class="toc-text">RESTClient</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ClientSet"><span class="toc-text">ClientSet</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#DynamicClient"><span class="toc-text">DynamicClient</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#DiscoveryClient"><span class="toc-text">DiscoveryClient</span></a></li></ol></li></ol>
+</div>
+    
+</div>
+
+
+<div class="search-field" id="search-field">
+    <div class="search-container">
+        <div class="search-input">
+            <span id="esc-search"> <i class="icon-fanhui iconfont"></i></span>
+            <input id="search-input"/>
+            <span id="begin-search">搜索</span>
+        </div>
+        <div class="search-result-container" id="search-result-container">
+
+        </div>
+    </div>
+</div>
+
+        <div class="index-about-mobile">
+            <i> 激水之疾，至于漂石者，势也。 </i>
+        </div>
+    </div>
+    
+    <div class="index-middle">
+        <!-- Main Content -->
+        
+
+
+<div class="post-container">
+    <div class="post-title">
+        Kubernetes 源码剖析 -- Client-go
+    </div>
+
+    <div class="post-meta">
+        <span class="attr">发布于：<span>2020-08-10 15:00:00</span></span>
+        
+        <span class="attr">标签：/
+        
+        <a class="tag" href="/tags/#术" title="术">术</a>
+        <span>/</span>
+        
+        
+        </span>
+        <span class="attr">访问：<span id="busuanzi_value_page_pv"></span>
+</span>
+</span>
+    </div>
+    <div class="post-content ">
+        <figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">Kubernetes</span> <span class="string">Version: release-1.14</span></span><br><span class="line"><span class="attr">Reference</span>: <span class="string">Kubernetes 源码剖析</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="源码结构"><a href="#源码结构" class="headerlink" title="源码结构"></a>源码结构</h2><table>
+<thead>
+<tr>
+<th>目录名</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>discovery</td>
+<td>discovery client，对 rest 客户端的进一步封装，用于发现 apiserver 所支持的能力和信息</td>
+</tr>
+<tr>
+<td>dynamic</td>
+<td>dynamic client ，对 rest 客户端的进一步封装，动态客户端，面向处理 CRD</td>
+</tr>
+<tr>
+<td>examples</td>
+<td>例子，比如对 deployment 创建、修改，如何选主，workqueue 如何使用等等</td>
+</tr>
+<tr>
+<td>informers</td>
+<td>这就是 client-go 中非常有名的 informer 机制的核心代码</td>
+</tr>
+<tr>
+<td>kubernetes</td>
+<td>clientset 的代码，对 rest 客户端的封装，提供复杂的内置资源访问和管理能力</td>
+</tr>
+<tr>
+<td>listers</td>
+<td>为每个 k8s 资源提供 lister 功能，提供了只读缓存功能</td>
+</tr>
+<tr>
+<td>plugin</td>
+<td>提供云服务商授权插件</td>
+</tr>
+<tr>
+<td>pkg</td>
+<td>主要是一些功能函数，比如版本函数</td>
+</tr>
+<tr>
+<td>rest</td>
+<td>这是最基础的 client，其它的 client 都是基于此派生的</td>
+</tr>
+<tr>
+<td>scale</td>
+<td>scale client 的代码，对 rest 客户端的进一步封装，用于扩容和缩容</td>
+</tr>
+<tr>
+<td>tools</td>
+<td>工具函数库，主要是和 k8s 相关的工具函数；提供 Client 查询和缓存</td>
+</tr>
+<tr>
+<td>util</td>
+<td>通用的一些工具函数，比如 WorkQueue 工作队列，Certificate 证书管理</td>
+</tr>
+<tr>
+<td>transport</td>
+<td>提供安全 tcp 链接</td>
+</tr>
+</tbody></table>
+<h2 id="Client-客户端对象"><a href="#Client-客户端对象" class="headerlink" title="Client 客户端对象"></a>Client 客户端对象</h2><p>首先 Rest 是最基础的客户端，RESTCLient 对 HTTP Request 进行了封装，实现 RESTful 的API 风格。ClientSet，DynamicClient 以及 DiscoveryClient 客户端都是基于 RESTClient 实现的。</p>
+<ul>
+<li>ClientSet 在 RESTClient 基础上封装了 Resource 和 Version 的管理方法，一个 Resource 可以理解为一个客户端，ClientSet 是多个客户端的集合，ClientSet 只能处理 K8s 内置资源；</li>
+<li>DynamicClient 可以处理 K8s 所有资源对象，包括内置资源与 CRD 自定义资源；</li>
+<li>DiscoveryClient 用于发现 kube-apiserver 所支持的资源组，资源版本和资源信息（Group，Version 以及 Resources）。</li>
+</ul>
+<p>要使用以上四种客户端，<strong>需要先通过 kubeconfig 连接到指定的 Kubernetes API Server</strong>（确定权限粒度）。</p>
+<p>看下面一个例子：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Code from： https://jeremy-boo.github.io/post/client-go/</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"flag"</span></span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"os"</span></span><br><span class="line">    <span class="string">"path/filepath"</span></span><br><span class="line">    <span class="string">"time"</span></span><br><span class="line">    metav1 <span class="string">"k8s.io/apimachinery/pkg/apis/meta/v1"</span></span><br><span class="line">    <span class="string">"k8s.io/client-go/kubernetes"</span></span><br><span class="line">    <span class="string">"k8s.io/client-go/tools/clientcmd"</span></span><br><span class="line">)</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">  <span class="keyword">var</span> kubeconfig *<span class="keyword">string</span></span><br><span class="line">  <span class="keyword">if</span> home := homeDir(); home != <span class="string">""</span> &#123;</span><br><span class="line">        kubeconfig = flag.String(<span class="string">"kubeconfig"</span>, filepath.Join(home, <span class="string">".kube"</span>, <span class="string">"config"</span>), <span class="string">"(optional) absolute path to the kubeconfig file"</span>)</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        kubeconfig = flag.String(<span class="string">"kubeconfig"</span>, <span class="string">""</span>, <span class="string">"absolute path to the kubeconfig file"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">  flag.Parse()</span><br><span class="line">  <span class="comment">// uses the current context in kubeconfig</span></span><br><span class="line">  config, err := clientcmd.BuildConfigFromFlags(<span class="string">""</span>, *kubeconfig)</span><br><span class="line">  <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">      <span class="built_in">panic</span>(err.Error())</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// creates the clientset</span></span><br><span class="line">  clientset, err := kubernetes.NewForConfig(config)</span><br><span class="line">  <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">      <span class="built_in">panic</span>(err.Error())</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// get pods list</span></span><br><span class="line">  <span class="keyword">for</span> &#123;</span><br><span class="line">      pods, err := clientset.CoreV1().Pods(<span class="string">""</span>).List(metav1.ListOptions&#123;&#125;)</span><br><span class="line">      <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">          <span class="built_in">panic</span>(err.Error())</span><br><span class="line">      &#125;</span><br><span class="line">      fmt.Printf(<span class="string">"There are %d pods in the cluster\n"</span>, <span class="built_in">len</span>(pods.Items))</span><br><span class="line">      time.Sleep(<span class="number">10</span> * time.Second)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">homeDir</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">  <span class="keyword">if</span> h := os.Getenv(<span class="string">"HOME"</span>); h != <span class="string">""</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> h</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> os.Getenv(<span class="string">"USERPROFILE"</span>) <span class="comment">// windows</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Kubeconfig"><a href="#Kubeconfig" class="headerlink" title="Kubeconfig"></a>Kubeconfig</h3><p>以上面这个例子为例，读取 Kubeconfig 配置文件的关键代码在于 <code>clientcmd.BuildConfigFromFlags</code>，它会读取配置信息并且实例化一个 res.Config 对象，由于 kubeconfig 会有多个 kube-apiserver 集群的配置信息，因此它需要能够合并多个配置信息，该过程由 Load 函数完成。分为<strong>加载 kubeconfig 文件</strong>和<strong>合并 kubeconfig 配置</strong>信息两步：</p>
+<ol>
+<li>加载 kubeconfig 文件；</li>
+</ol>
+<p><code>vendor/k8s.io/client-go/tools/clientcmd/loader.go</code></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(rules *ClientConfigLoadingRules)</span> <span class="title">Load</span><span class="params">()</span> <span class="params">(*clientcmdapi.Config, error)</span></span> &#123;</span><br><span class="line">	<span class="comment">// ...</span></span><br><span class="line"></span><br><span class="line">	kubeConfigFiles := []<span class="keyword">string</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Make sure a file we were explicitly told to use exists</span></span><br><span class="line">  <span class="comment">// ExplicitPath 为显式地址，用于合并</span></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(rules.ExplicitPath) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> _, err := os.Stat(rules.ExplicitPath); os.IsNotExist(err) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">		&#125;</span><br><span class="line">		kubeConfigFiles = <span class="built_in">append</span>(kubeConfigFiles, rules.ExplicitPath)</span><br><span class="line"></span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="comment">// Precedence 是个 []string</span></span><br><span class="line">		kubeConfigFiles = <span class="built_in">append</span>(kubeConfigFiles, rules.Precedence...)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	kubeconfigs := []*clientcmdapi.Config&#123;&#125;</span><br><span class="line">	<span class="comment">// read and cache the config files so that we only look at them once</span></span><br><span class="line">	<span class="keyword">for</span> _, filename := <span class="keyword">range</span> kubeConfigFiles &#123;</span><br><span class="line">		<span class="comment">// ...</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// LoadFromFile takes a filename and deserializes the contents into Config object</span></span><br><span class="line">    <span class="comment">// 把变量从内存中取出变成可存储的传输对象成为序列化，反之从可存储的传输对象变成内存对象为反序列化；</span></span><br><span class="line">    <span class="comment">// 这里就是读取文件，转换成一个 config 对象</span></span><br><span class="line">		config, err := LoadFromFile(filename)</span><br><span class="line">		<span class="comment">// ...</span></span><br><span class="line"></span><br><span class="line">		kubeconfigs = <span class="built_in">append</span>(kubeconfigs, config)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// ... merge 部分代码</span></span><br><span class="line">	<span class="keyword">return</span> config, utilerrors.NewAggregate(errlist)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>合并 kubeconfig 配置</li>
+</ol>
+<p>这部分的合并有一个优先级的关系，上面 Load 函数的 merge 部分是：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"> <span class="comment">// first merge all of our maps</span></span><br><span class="line">mapConfig := clientcmdapi.NewConfig()</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> _, kubeconfig := <span class="keyword">range</span> kubeconfigs &#123;</span><br><span class="line">	mergo.MergeWithOverwrite(mapConfig, kubeconfig)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// merge all of the struct values in the reverse order so that priority is given correctly</span></span><br><span class="line"><span class="comment">// errors are not added to the list the second time</span></span><br><span class="line">nonMapConfig := clientcmdapi.NewConfig()</span><br><span class="line"><span class="keyword">for</span> i := <span class="built_in">len</span>(kubeconfigs) - <span class="number">1</span>; i &gt;= <span class="number">0</span>; i-- &#123;</span><br><span class="line">	kubeconfig := kubeconfigs[i]</span><br><span class="line">	mergo.MergeWithOverwrite(nonMapConfig, kubeconfig)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// since values are overwritten, but maps values are not, we can merge the non-map config on top of the map config and</span></span><br><span class="line"><span class="comment">// get the values we expect.</span></span><br><span class="line">config := clientcmdapi.NewConfig()</span><br><span class="line">mergo.MergeWithOverwrite(config, mapConfig)</span><br><span class="line">mergo.MergeWithOverwrite(config, nonMapConfig)</span><br></pre></td></tr></table></figure>
+
+<p><a href="https://pkg.go.dev/github.com/imdario/mergo?tab=doc#MergeWithOverwrite" target="_blank" rel="noopener">MergeWithOverWrite</a> 是来自 <a href="https://pkg.go.dev/github.com/imdario/mergo?tab=doc" target="_blank" rel="noopener">mergo</a> 包的一个函数，第一个参数为 src，第二个参数为 dst，merge 后的结构例子如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">src:      T&#123;X: &quot;two&quot;, Z:&#123;A: &quot;three&quot;, B: 4&#125;&#125;</span><br><span class="line">dst:      T&#123;X: &quot;one&quot;, Y: 5, Z:&#123;A: &quot;four&quot;, B: 6&#125;&#125;</span><br><span class="line">result:   T&#123;X: &quot;two&quot;, Y: 5, Z:&#123;A: &quot;three&quot;, B: 4&#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="RESTClient"><a href="#RESTClient" class="headerlink" title="RESTClient"></a>RESTClient</h3><p>一个使用 RESTClient 的例子见书本 134页。使用的关键代码为：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// result := &amp;corev1.PodList&#123;&#125;</span></span><br><span class="line">restClient.Get().Namespaces(<span class="string">"default"</span>).Resources(<span class="string">"pods"</span>).VersionParams(&amp;metav1.ListOptions&#123;Limit: <span class="number">500</span>&#125;, scheme.ParamterCodec).Do().Into(result)</span><br></pre></td></tr></table></figure>
+
+<p>其中，restClient 为通过 kubeconfig 文件生成的 Client 对象，Get 方法封装了 HTTP get 请求，VersionParams 将一些查询选项添加到请求参数中，通过 Do 函数执行请求，并将 kube-apiserver 返回的结果（结果是一个 Result 对象）解析到 corev1.PodList 对象中。</p>
+<p>看下面这个 Do 方法：</p>
+<p><code>vendor/k8s.io/client-go/rest/request.go</code></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Do formats and executes the request. Returns a Result object for easy response</span></span><br><span class="line"><span class="comment">// processing.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Error type:</span></span><br><span class="line"><span class="comment">//  * If the request can't be constructed, or an error happened earlier while building its</span></span><br><span class="line"><span class="comment">//    arguments: *RequestConstructionError</span></span><br><span class="line"><span class="comment">//  * If the server responds with a status: *errors.StatusError or *errors.UnexpectedObjectError</span></span><br><span class="line"><span class="comment">//  * http.Client.Do errors are returned directly.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *Request)</span> <span class="title">Do</span><span class="params">()</span> <span class="title">Result</span></span> &#123;</span><br><span class="line">	r.tryThrottle()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> result Result</span><br><span class="line">	err := r.request(<span class="function"><span class="keyword">func</span><span class="params">(req *http.Request, resp *http.Response)</span></span> &#123;</span><br><span class="line">    <span class="comment">// transformResponse 把一个 API response 转化为一个 structured API object</span></span><br><span class="line">		result = r.transformResponse(resp, req)</span><br><span class="line">	&#125;)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> Result&#123;err: err&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> result</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中，request 方法的实现可以参见 <a href="https://jinrunsen.com/learn-clien-go-request/" target="_blank" rel="noopener">学习 client-go 中 request 函数的实现</a>，写得非常详细了。</p>
+<h3 id="ClientSet"><a href="#ClientSet" class="headerlink" title="ClientSet"></a>ClientSet</h3><p>对于 RESTClient 而言，必须指定 Resource 和 Version，ClientSet 在 RESTClient 的基础上封装了 Resource 和 Version，通过函数的方法直接调用，比如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">clientset, err := kubernetes.NewForConfig(config)</span><br><span class="line"><span class="comment">// err handling</span></span><br><span class="line">podClient := clientset.CoreV1().Pods(apiv1.NamespaceDefault)</span><br><span class="line">list, err := podClient.List(metav1.ListOptions&#123;limit: <span class="number">500</span>&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>相比于 RESTClient 的多次调用，<code>CoreV1().Pods(apiv1.NamespaceDefault)</code>  表示对 core 核心资源组的 v1 资源版本下的 Pod 资源对象。而关于 Pod 的操作也是一层封装，比如 List 操作：</p>
+<p><code>vendor/k8s.io/client-go/kubernetes/typed/core/v1/pod.go</code></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *pods)</span> <span class="title">List</span><span class="params">(opts metav1.ListOptions)</span> <span class="params">(result *v1.PodList, err error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> timeout time.Duration</span><br><span class="line">	<span class="keyword">if</span> opts.TimeoutSeconds != <span class="literal">nil</span> &#123;</span><br><span class="line">		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second</span><br><span class="line">	&#125;</span><br><span class="line">	result = &amp;v1.PodList&#123;&#125;</span><br><span class="line">  <span class="comment">// 这一步就是调用原来的 RestClient</span></span><br><span class="line">	err = c.client.Get().</span><br><span class="line">		Namespace(c.ns).</span><br><span class="line">		Resource(<span class="string">"pods"</span>).</span><br><span class="line">		VersionedParams(&amp;opts, scheme.ParameterCodec).</span><br><span class="line">		Timeout(timeout).</span><br><span class="line">		Do().</span><br><span class="line">		Into(result)</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="DynamicClient"><a href="#DynamicClient" class="headerlink" title="DynamicClient"></a>DynamicClient</h3><p>ClientSet 只能访问 k8s 自带的资源，而 DynamicClient 可以访问 CRD 自定义资源，这因为 ClientSet 预先实现每种 Resource 和 Version，内部的数据都是结构化的。而 DynamicClient 内部实现了 Unstructured，用于处理非结构化数据。</p>
+<p>假设获取 List Pod 的操作（PodList），DynamicClient 的处理过程将所有 Resource 转化为 Unstructured 结构类型，进行相应的处理，处理完成后再将 Unstructured 的结构转换成 PodList，整个过程类似于 Go 语言的 interface{} 断言转化过程。而 Unstructured 结构类型是通过 map[string]interface{} 转换的。</p>
+<p>⚠️  DynamicClient 不是类型安全，访问 CRD 自定义资源时，操作指针不当可能导致程序崩溃。</p>
+<p>如书本第 140 页的例子，关键流程为：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">dynamicClient, err := dynamic.NewForConfig(config)</span><br><span class="line"><span class="comment">// 资源组，资源版本，资源名称</span></span><br><span class="line">gvr := schema.GroupVersionResource&#123;Version: <span class="string">"v1"</span>, Resource: <span class="string">"pods"</span>&#125;</span><br><span class="line"><span class="comment">// 得到的 Pod 列表是一个 unstructured.UnstructuredList 的指针类型</span></span><br><span class="line">unstructObj, err := dynamicClient.Resource(gvr).NameSpace(apiV1.NamespaceDefault).List(metav1.ListOptions&#123;limit: <span class="number">500</span>&#125;)</span><br><span class="line">podList := &amp;corev1.PodList&#123;&#125;</span><br><span class="line"><span class="comment">// 转换成 PodList 类型</span></span><br><span class="line">err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstructObj.UnstructuredContent(), podList)</span><br><span class="line"><span class="comment">// err handling</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="DiscoveryClient"><a href="#DiscoveryClient" class="headerlink" title="DiscoveryClient"></a>DiscoveryClient</h3><p>DiscoveryClient 用于查看 Kubernetes API Server 所支持的资源组，资源版本和资源信息。</p>
+<p>它同样是在 ClientSet 上的一层封装，实际上，kubectl 的api-versions 和 api-resources 的命令就是通过 DiscoveryClient 实现的。</p>
+<p>DiscoveryClient 除了可以发现所支持的资源组，版本和信息，还可以将这些内容缓存到本地，从而缓解 Kubenertes API Server 访问的压力，默认存储在 <code>~/.kube/cache</code> 和  <code>~/.kube/http-cache</code> 下。</p>
+<p>如书本第 142 页的例子，关键流程为：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">discoveryClient, err := discovery.NewDiscoveryForConfig(config)</span><br><span class="line">_, APIResourceList, err := discoveryClient.ServerGroupsAndResources()</span><br><span class="line"><span class="keyword">for</span> _, list := <span class="keyword">range</span> APIResourceList &#123;</span><br><span class="line">  gv, err := schema.ParseGroupVersion(list.GroupVersion)</span><br><span class="line">  <span class="keyword">for</span> _, resource := <span class="keyword">range</span> list.APIResources &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"name: %v, group: %v, version: %v\n"</span>, resource.Name, gv.Group, gv.Version)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>获取 Kubernetes API Server 支持的资源组，资源版本，资源信息。</li>
+</ol>
+<p>APIServer 对外暴露的是 /api 和 /apis 两个接口；DiscoveryClient 通过访问这两个接口还获取信息，核心实现位于 ServerGroupsAndResources 中的 ServerGroups 方法中：</p>
+<p><code>vendor/k8s.io/client-go/discovery/discovery_client.go</code></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *DiscoveryClient)</span> <span class="title">ServerGroups</span><span class="params">()</span> <span class="params">(apiGroupList *metav1.APIGroupList, err error)</span></span> &#123;</span><br><span class="line">	<span class="comment">// Get the groupVersions exposed at /api</span></span><br><span class="line">	v := &amp;metav1.APIVersions&#123;&#125;</span><br><span class="line">	err = d.restClient.Get().AbsPath(d.LegacyPrefix).Do().Into(v)</span><br><span class="line">	<span class="comment">// error handling</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Get the groupVersions exposed at /apis</span></span><br><span class="line">	apiGroupList = &amp;metav1.APIGroupList&#123;&#125;</span><br><span class="line">	err = d.restClient.Get().AbsPath(<span class="string">"/apis"</span>).Do().Into(apiGroupList)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &amp;&amp; !errors.IsNotFound(err) &amp;&amp; !errors.IsForbidden(err) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// error handling</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// prepend the group retrieved from /api to the list if not empty</span></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(v.Versions) != <span class="number">0</span> &#123;</span><br><span class="line">		apiGroupList.Groups = <span class="built_in">append</span>([]metav1.APIGroup&#123;apiGroup&#125;, apiGroupList.Groups...)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> apiGroupList, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过 RESTClient 请求 /api 接口，结果存放到 APIVersions 结构体，再次通过 RESTClient 请求 /apis 接口，请求结果存放到 APIGroupList 中。最后通过 /api 检索到的资源组信息合并到 apiGroupList 中返回。</p>
+<p><strong>其实整个这些 API 的设计可以看出来，kubernetes 都是先声明一个对象，再将请求得到的数据通过 Into 方法装载进去，从而保证数据的“干净”性，这种设计理念贯穿了 RESTClient</strong>。</p>
+<ol start="2">
+<li>DiscoveryClient 的本地缓存</li>
+</ol>
+<p>缓存机制本身很简单，首次获取时，先查询本地缓存，不存在（没有命中）则请求 Kubernetes API Server 接口（回源）；Cache 把得到的响应数据存储本地一份并返回给 DiscoveryClient。下一次再次获取的时候，直接从本地缓存返回（命中）给 Client。默认10分钟与 APIServer 同步一次缓存，因为资源组，资源版本，资源信息几乎不变。</p>
+
+        
+        <br />
+        <div id="comment-container">
+        </div>
+        <div id="disqus_thread"></div>
+
+        <div id="lv-container">
+        </div>
+
+    </div>
+</div>
+
+    </div>
+</div>
+
+
+<footer class="footer">
+    <ul class="list-inline text-center">
+        
+        
+
+        
+
+        
+
+        
+        <li>
+            <a target="_blank"  href="https://github.com/linxuyalun">
+                            <span class="fa-stack fa-lg">
+                                <i class="iconfont icon-github"></i>
+                            </span>
+            </a>
+        </li>
+        
+
+        
+        <li>
+            <a target="_blank"  href="https://www.linkedin.com/in/亚伦-林许-b06aa5164">
+                            <span class="fa-stack fa-lg">
+                                <i class="iconfont icon-linkedin"></i>
+                            </span>
+            </a>
+        </li>
+        
+
+    </ul>
+    
+    <p>
+        <span>/</span>
+        
+        <span><a href="https://blog.thrimbda.com/" target="_blank" rel="noopener">Thrimbda&#39;s blog</a></span>
+        <span>/</span>
+        
+        <span><a href="https://vanderchen.github.io/" target="_blank" rel="noopener">VanderChen&#39;s Dev Blog</a></span>
+        <span>/</span>
+        
+    </p>
+    
+    <p>
+        <span id="busuanzi_container_site_pv">
+            <span id="busuanzi_value_site_pv"></span>PV
+        </span>
+        <span id="busuanzi_container_site_uv">
+            <span id="busuanzi_value_site_uv"></span>UV
+        </span>
+        Created By <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>  Theme <a href="https://github.com/aircloud/hexo-theme-aircloud" target="_blank" rel="noopener">AirCloud</a></p>
+</footer>
+
+
+
+
+</body>
+
+<script>
+    // We expose some of the variables needed by the front end
+    window.hexo_search_path = ""
+    window.hexo_root = "/"
+    window.isPost = true
+</script>
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+
+<script src="/js/index.js"></script>
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+</html>
