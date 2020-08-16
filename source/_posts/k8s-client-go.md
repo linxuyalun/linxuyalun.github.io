@@ -606,20 +606,7 @@ type Deltas []Delta
 
 DeltaFIFO 与其他队列最大的不同之处在于：它会保留所有关于资源对象（obj）的操作类型，队列中会存在拥有不同操作类型的同一资源对象，**使得消费者在处理该资源对象时能够了解资源对象所发生的事情**。queue 字段存储资源对象的 key，这个 key 通过 KeyOf 函数计算得到，items 字段通过 map 数据结构的方式存储，value 存储的是对象 Deltas 数组，结构图如下：
 
-```
-        ┌───────┐┌───────┐┌───────┐
-queue   │ObjKey1││ObjKey2││ObjKey3│
-        └───────┘└───────┘└───────┘
-
-        ┌─────────────────────────────────────────────────────────────┐
-itmes   │ObjKey1: [{"Added",Obj1} {"Updated",Obj1}]										│ 
-        ├─────────────────────────────────────────────────────────────┤
-        │ObjKey2: [{"Added",Obj2},{"Deleted",Obj2},{"Sync",Obj2}]     │
-        ├─────────────────────────────────────────────────────────────┤
-        │ObjKey3: [{"Added",Obj3},{"Updated",Obj3},{"Deleted",Obj3}]  │
-        └─────────────────────────────────────────────────────────────┘
-
-```
+<img src="img/004.png" style="zoom:60%;" />
 
 作为一个 FIFO 的队列，有数据的生产者和消费者，其中生产者是 Reflector 调用的 Add 方法，消费者是 Controller 调用的 Pop 方法。三个核心方法为生产者方法，消费者方法和 Resync 机制。
 
@@ -880,19 +867,7 @@ Client-go 用来存储资源对象并自带索引功能的本地存储，Reflect
 
 了解 Indexer 之前，先了解 ThreadSafeMap，ThreadSafeMap 是实现并发安全存储，就像 Go 1.9 后推出 `sync.Map` 一样。Kubernetes 开始编写的时候还没有 `sync.Map`。Indexer 在 ThreadSafeMap 的基础上进行了封装，继承了 ThreadSafeMap 的存储相关的增删改查相关操作方法，实现了 Indexer Func 等功能，例如 Index，IndexKeys，GetIndexers 等方法，这些方法为 ThreadSafeMap 提供了索引功能。如下图：
 
-```
-        ┌───────────────┐    ┌──────────────┐
-        │   Indeices    │--->│    Index     │
-        └───────────────┘    └──────────────┘
-
-        ┌───────────────┐    ┌──────────────┐
-        │   Indexers    │--->│  IndexFun    │
-        └───────────────┘    └──────────────┘
-
-        ┌───────────────────────────────────┐
-        │          ThreadSafeStore          │
-        └───────────────────────────────────┘
-```
+<img src="img/005.png" style="zoom:60%;" />
 
 #### ThreadSafeStore
 
