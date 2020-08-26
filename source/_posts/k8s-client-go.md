@@ -991,7 +991,7 @@ ByIndex 接收两个参数：indexName（索引器名字）以及 indexKey（需
 
 还是这张图，下半部分就是我们这节要学习的 WorkQueue。
 
-![](001.png)
+![](001.jpg)
 
 WorkQueue 的实现比 FIFO 略为复杂，它主要功能在于标记和去重。
 
