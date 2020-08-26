@@ -431,7 +431,7 @@
 <p>ByIndex 接收两个参数：indexName（索引器名字）以及 indexKey（需要检索的 key），首先从 c.indexers 查找制定的索引器函数，然后从 c.indices 查找返回的缓存器函数，最后根据需要索引的 indexKey 从缓存数据中查到并返回。</p>
 <p>⚠️ K8s 将 map 结构类型的 key 作为 Set 数据结构，实现 Set 去重特性。</p>
 <h2 id="WorkQueue"><a href="#WorkQueue" class="headerlink" title="WorkQueue"></a>WorkQueue</h2><p>还是这张图，下半部分就是我们这节要学习的 WorkQueue。</p>
-<p><img src="001.png" alt=""></p>
+<p><img src="001.jpg" alt=""></p>
 <p>WorkQueue 的实现比 FIFO 略为复杂，它主要功能在于标记和去重。</p>
 <ul>
 <li><strong>有序</strong>：按照添加顺序处理元素（item）；</li>
