@@ -5,7 +5,7 @@ date: 2021-02-18 18:20:00
 tags: 术
 ---
 
-最近越来越多会在一些开源项目和源码中见到 struct 嵌套匿名 interface，比如：
+最近会在一些开源项目和源码中见到 struct 嵌套匿名 interface，比如：
 
 ```go
 type Interface interface {
@@ -33,6 +33,11 @@ type reverse struct {
 ### 实际/动态类型和静态类型
 
 ```go
+type Action interface {
+	Jump()
+	Run()
+}
+
 type Person struct {
 	name string
 }
@@ -102,12 +107,13 @@ func main() {
 }
 ```
 
-Person 确实实现了Actiuon 的方法，从一个更可视化的角度来看，可以看成：
+Person 确实实现了Action 的方法，从一个更可视化的角度来看，可以看成：
 
 ```go
 func (p Person) Jump() {
   p.Action.Jump()
 }
+// 编译器自动为类型 *Person 实现 Jump() 方法
 // Run 同理
 ```
 
