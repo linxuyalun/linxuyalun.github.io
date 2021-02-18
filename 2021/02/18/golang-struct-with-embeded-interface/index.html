@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="google-site-verification" content="xBT4GhYoi5qRD5tr338pgPM5OWHHIDR6mNg1a3euekI" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Alan&#39;s Blog">
+    <meta name="keyword"  content="">
+    <link rel="shortcut icon" href="/img/favicon.ico">
+
+    <title>
+        
+        Golang 中 struct 嵌入 interface - Alan&#39;s Blog
+        
+    </title>
+
+    <!-- Custom CSS -->
+    
+<link rel="stylesheet" href="/css/aircloud.css">
+
+    
+<link rel="stylesheet" href="/css/gitment.css">
+
+    <!--<link rel="stylesheet" href="https://imsun.github.io/gitment/style/default.css">-->
+    <link href="//at.alicdn.com/t/font_620856_pl6z7sid89qkt9.css" rel="stylesheet" type="text/css">
+    <!-- ga & ba script hoook -->
+    <script></script>
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+
+<div class="site-nav-toggle" id="site-nav-toggle">
+    <button>
+        <span class="btn-bar"></span>
+        <span class="btn-bar"></span>
+        <span class="btn-bar"></span>
+    </button>
+</div>
+
+<div class="index-about">
+    <i> 激水之疾，至于漂石者，势也。 </i>
+</div>
+
+<div class="index-container">
+    
+    <div class="index-left">
+        
+<div class="nav" id="nav">
+    <div class="avatar-name">
+        <div class="avatar ">
+            <img src="/img/avatar.jpg" />
+        </div>
+        <div class="name">
+            <i>Lin Hsu Yalun</i>
+        </div>
+    </div>
+    <div class="contents" id="nav-content">
+        <ul>
+            <li >
+                <a href="/">
+                    <i class="iconfont icon-shouye1"></i>
+                    <span>主页</span>
+                </a>
+            </li>
+            <li >
+                <a href="/tags">
+                    <i class="iconfont icon-biaoqian1"></i>
+                    <span>标签</span>
+                </a>
+            </li>
+            <li >
+                <a href="/archives">
+                    <i class="iconfont icon-guidang2"></i>
+                    <span>存档</span>
+                </a>
+            </li>
+            <li >
+                <a href="/about/">
+                    <i class="iconfont icon-guanyu2"></i>
+                    <span>关于</span>
+                </a>
+            </li>
+            
+        </ul>
+    </div>
+    
+        <div id="toc" class="toc-article">
+    <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Details-of-Interface"><span class="toc-text">Details of Interface</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#实际-动态类型和静态类型"><span class="toc-text">实际&#x2F;动态类型和静态类型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Struct-with-embemed-Interface"><span class="toc-text">Struct with embemed Interface</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Use-Case"><span class="toc-text">Use Case</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Example-Interface-Wrapper"><span class="toc-text">Example: Interface Wrapper</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Example-sort-Reverse"><span class="toc-text">Example: sort.Reverse</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Reference"><span class="toc-text">Reference</span></a></li></ol>
+</div>
+    
+</div>
+
+
+<div class="search-field" id="search-field">
+    <div class="search-container">
+        <div class="search-input">
+            <span id="esc-search"> <i class="icon-fanhui iconfont"></i></span>
+            <input id="search-input"/>
+            <span id="begin-search">搜索</span>
+        </div>
+        <div class="search-result-container" id="search-result-container">
+
+        </div>
+    </div>
+</div>
+
+        <div class="index-about-mobile">
+            <i> 激水之疾，至于漂石者，势也。 </i>
+        </div>
+    </div>
+    
+    <div class="index-middle">
+        <!-- Main Content -->
+        
+
+
+<div class="post-container">
+    <div class="post-title">
+        Golang 中 struct 嵌入 interface
+    </div>
+
+    <div class="post-meta">
+        <span class="attr">发布于：<span>2021-02-18 18:20:00</span></span>
+        
+        <span class="attr">标签：/
+        
+        <a class="tag" href="/tags/#术" title="术">术</a>
+        <span>/</span>
+        
+        
+        </span>
+        <span class="attr">访问：<span id="busuanzi_value_page_pv"></span>
+</span>
+</span>
+    </div>
+    <div class="post-content ">
+        <p>最近越来越多会在一些开源项目和源码中见到 struct 嵌套匿名 interface，比如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Interface <span class="keyword">interface</span> &#123;</span><br><span class="line">    Len() <span class="keyword">int</span></span><br><span class="line">    Less(i, j <span class="keyword">int</span>) <span class="keyword">bool</span></span><br><span class="line">    Swap(i, j <span class="keyword">int</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> reverse <span class="keyword">struct</span> &#123;</span><br><span class="line">    Interface</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>本文试图搞清楚这种设计的意义以及我们在实际编码中何时会用上。</p>
+<p>在这之前，首先需要搞清楚 interface 的一些小细节。</p>
+<h2 id="Details-of-Interface"><a href="#Details-of-Interface" class="headerlink" title="Details of Interface"></a>Details of Interface</h2><p>本文不对 interface 本身做科普，而是试图介绍一些 interface 中可能错过的小细节。</p>
+<h3 id="实际-动态类型和静态类型"><a href="#实际-动态类型和静态类型" class="headerlink" title="实际/动态类型和静态类型"></a>实际/动态类型和静态类型</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Person <span class="keyword">struct</span> &#123;</span><br><span class="line">	name <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Person)</span> <span class="title">Jump</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"JUMP"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Person)</span> <span class="title">Run</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"RUN"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> person Action = &amp;Person&#123;name: <span class="string">"Keroro"</span>&#125;</span><br><span class="line">	person.Jump()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>对于一个接口类型的变量来说，例如上面的变量  person，赋给它的值可以被叫做它的实际值（也称动态值），而该值的类型可以被叫做这个变量的实际类型（也称动态类型）。</p>
+<p>比如，把取址表达式 &amp;Person 的结果值赋给了变量 person，<strong>值的类型 <code>*Person</code> 就是该变量的动态类型</strong>。</p>
+<p>动态类型这个叫法是相对于静态类型而言的。<strong>对于变量 person 来讲，它的静态类型就是 Action，并且永远是 Action</strong>，但是它的<u>动态类型却会随着赋给它的动态值而变化</u>。比如，只有我把一个 <code>*Person</code> 类型的值赋给变量 person 之后，该变量的动态类型才会是 <code>*Person</code> 。如果还有一个 Action 接口的实现类型 <code>*ET</code>，并且我又把一个此类型的值赋给了 <code>person</code>，那么它的动态类型就会变为 <code>*ET</code>。</p>
+<p><strong>在给一个接口类型的变量赋予实际的值之前，它的动态类型是不存在的。</strong></p>
+<h3 id="Struct-with-embemed-Interface"><a href="#Struct-with-embemed-Interface" class="headerlink" title="Struct with embemed Interface"></a>Struct with embemed Interface</h3><p>一个实现了某个 interface 的 struct 需要实现该 interface 下的所有方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Action <span class="keyword">interface</span> &#123;</span><br><span class="line">	Jump()</span><br><span class="line">	Run()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Person <span class="keyword">struct</span> &#123;</span><br><span class="line">	name <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Person)</span> <span class="title">Jump</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"JUMP"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 编译失败：missing method Run</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">  <span class="keyword">var</span> p Action = &amp;Person&#123;<span class="string">"Keroro"</span>&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>但是如下声明是合法的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Action <span class="keyword">interface</span> &#123;</span><br><span class="line">	Jump()</span><br><span class="line">	Run()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Person <span class="keyword">struct</span> &#123;</span><br><span class="line">	Action</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> person Action = &amp;Person&#123;&#125;</span><br><span class="line">	<span class="comment">// 打印结果：person:size=[16],value=[&amp;&#123;&lt;nil&gt;&#125;]</span></span><br><span class="line">	fmt.Printf(<span class="string">"person:size=[%d],value=[%v]\n"</span>, unsafe.Sizeof(person), person)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Person 确实实现了Actiuon 的方法，从一个更可视化的角度来看，可以看成：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p Person)</span> <span class="title">Jump</span><span class="params">()</span></span> &#123;</span><br><span class="line">  p.Action.Jump()</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// Run 同理</span></span><br></pre></td></tr></table></figure>
+
+<p>那么 <code>p.Action.Jump()</code> 究竟指代的位置是什么？其实，<strong>只要是任何实现了 Action 接口的任何对象都可以</strong>。</p>
+<p>另外需要注意的一点是上述例子的打印结果：<code>person:size=[16],value=[&amp;{&lt;nil&gt;}]</code>，这里说明两点：</p>
+<ol>
+<li>一个 interface 占据的大小是 16 个字节;</li>
+<li>这里 person 的打印结果为 <code>&amp;{&lt;nil&gt;}</code>，即 Action 接口的打印值为 nil，注意这里 nil 仅代表字面量上的 nil，而不代表此处 Action 的值为 nil，接口在被实例化时，会被包装一层复杂的数据结构 iface，iface 的实例会包含两个指针，<strong>一个是指向类型信息的指针，另一个是指向动态值的指针</strong>。这里的类型信息是由另一个专用数据结构的实例承载的，其中包含了动态值的类型，以及使它实现了接口的方法和调用它们的途径等等。因此，这里的 nil 的真正含义是指 Action 实例化后指向动态值的指针为 nil。</li>
+</ol>
+<p>通过下面这个示例来更清楚的演示细节：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Action <span class="keyword">interface</span> &#123;</span><br><span class="line">	Jump()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Somebody <span class="keyword">struct</span> &#123;</span><br><span class="line">	Action</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Somebody)</span> <span class="title">Jump</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"JUMP"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> somebody Somebody = Somebody&#123;&#125;</span><br><span class="line">	<span class="keyword">var</span> hero Somebody = Somebody&#123;Action: &amp;Somebody&#123;&#125;&#125;</span><br><span class="line">	somebody.Jump()	<span class="comment">// 打印 JUMP，Somebody 结构实现了 Jump，与 Action 接口无关</span></span><br><span class="line">	<span class="comment">// runtime error: invalid memory address or nil pointer dereference</span></span><br><span class="line">	<span class="comment">// somebody.Action.Jump()</span></span><br><span class="line">  hero.Action.Jump() <span class="comment">// 打印 JUMP，Action 接口实例化，等价于 hero.Jump()</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// 打印结果：somebody:size=[16],value=[&#123;&lt;nil&gt;&#125;]</span></span><br><span class="line">	fmt.Printf(<span class="string">"somebody:size=[%d],value=[%v]\n"</span>, unsafe.Sizeof(somebody), somebody)</span><br><span class="line">  <span class="comment">// 打印结果：hero:size=[16],value=[&#123;0xc000010200&#125;]</span></span><br><span class="line">	fmt.Printf(<span class="string">"hero:size=[%d],value=[%v]\n"</span>, unsafe.Sizeof(hero), hero)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Use-Case"><a href="#Use-Case" class="headerlink" title="Use Case"></a>Use Case</h2><p>回到最开始的问题，什么时候会用上它们？</p>
+<h3 id="Example-Interface-Wrapper"><a href="#Example-Interface-Wrapper" class="headerlink" title="Example: Interface Wrapper"></a>Example: Interface Wrapper</h3><p>从一个角度来说，它可以做到 DRY 原则，另一方面，它同样可以帮助开发者遵守 SOLID 中的依赖倒置原则。如下示例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Action <span class="keyword">interface</span> &#123;</span><br><span class="line">	Jump()</span><br><span class="line">	Run()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Somebody <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Somebody)</span> <span class="title">Jump</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"SOMEBODY JUMP"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Somebody)</span> <span class="title">Run</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"SOMEBODY RUN"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Hero <span class="keyword">struct</span> &#123;</span><br><span class="line">	Action</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Hero)</span> <span class="title">Jump</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">"HERO JUMP"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> hero = Hero&#123;&amp;Somebody&#123;&#125;&#125;</span><br><span class="line">	hero.Run()</span><br><span class="line">	hero.Jump()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 输出：</span></span><br><span class="line"><span class="comment">// SOMEBODY RUN</span></span><br><span class="line"><span class="comment">// HERO JUMP</span></span><br></pre></td></tr></table></figure>
+
+<p>与 Somebody 结构体相比，Hero 结构体只有一个 Jump 方法和 Somebody 结构体不同，那么它就可以采用这种做法。Hero 可以只实现 Jump 方法而不需要考虑 Run 方法的实现，相当于 Hero 这个数据结构 “继承” 了 Somebody 这个数据结构，同时它“实现”了自己的 Jump 方法。</p>
+<h3 id="Example-sort-Reverse"><a href="#Example-sort-Reverse" class="headerlink" title="Example: sort.Reverse"></a>Example: sort.Reverse</h3><p>一个经典的例子是 golang 源码库中的 <code>sort.Reverse</code>。它的使用在乍看之下并不好理解。一个比较简单的排序例子，对一个整数切片进行排序：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">lst := []<span class="keyword">int</span>&#123;<span class="number">4</span>, <span class="number">5</span>, <span class="number">2</span>, <span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>, <span class="number">3</span>&#125;</span><br><span class="line">sort.Sort(sort.IntSlice(lst))</span><br><span class="line">fmt.Println(lst)</span><br><span class="line"></span><br><span class="line"><span class="comment">//打印：[1 2 3 4 5 8 9]</span></span><br></pre></td></tr></table></figure>
+
+<p><code>sort.Sort</code> 接受一个实现了 <code>sort.Interface</code> 接口的参数，定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Interface <span class="keyword">interface</span> &#123;</span><br><span class="line">    <span class="comment">// Len is the number of elements in the collection.</span></span><br><span class="line">    Len() <span class="keyword">int</span></span><br><span class="line">    <span class="comment">// Less reports whether the element with</span></span><br><span class="line">    <span class="comment">// index i should sort before the element with index j.</span></span><br><span class="line">    Less(i, j <span class="keyword">int</span>) <span class="keyword">bool</span></span><br><span class="line">    <span class="comment">// Swap swaps the elements with indexes i and j.</span></span><br><span class="line">    Swap(i, j <span class="keyword">int</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果有一个类型想用 <code>sort.Sort</code> 来排序，就必须实现这个接口；对于像 int slice 这样的简单类型，标准库提供了 <code>sort.IntSlice</code> 这样的方便类型，可以接受传进来的切片，并在其上实现 <code>sort.Interface</code> 方法。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// IntSlice attaches the methods of Interface to []int, sorting in increasing order.</span></span><br><span class="line"><span class="keyword">type</span> IntSlice []<span class="keyword">int</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p IntSlice)</span> <span class="title">Len</span><span class="params">()</span> <span class="title">int</span></span>           &#123; <span class="keyword">return</span> <span class="built_in">len</span>(p) &#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p IntSlice)</span> <span class="title">Less</span><span class="params">(i, j <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123; <span class="keyword">return</span> p[i] &lt; p[j] &#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p IntSlice)</span> <span class="title">Swap</span><span class="params">(i, j <span class="keyword">int</span>)</span></span>      &#123; p[i], p[j] = p[j], p[i] &#125;</span><br></pre></td></tr></table></figure>
+
+<p>到目前为止，一切都很好。</p>
+<p>那么 <code>sort.Reverse</code> 是如何工作的呢？通过巧妙地采用一个嵌入结构中的接口。sort 包中有这样一个类型来帮助完成任务。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> reverse <span class="keyword">struct</span> &#123;</span><br><span class="line">  sort.Interface</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r reverse)</span> <span class="title">Less</span><span class="params">(i, j <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">  <span class="keyword">return</span> r.Interface.Less(j, i)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意这里 Less 的实现，逆向通过嵌入的方式实现 <code>sort.Interface</code>（只要在初始化的时候使用实现了该 struct 的类型就可以了），它“截取”了该接口的一个方法 <code>Less</code>。然后，它将其委托给嵌入值的 <code>Less</code>，但将参数的顺序倒置。这个 <code>Less</code> 实际上是将元素进行反向比较，这将使排序工作反向进行。</p>
+<p><code>sort.Reverse</code> 函数简单来说就是：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Reverse</span><span class="params">(data sort.Interface)</span> <span class="title">sort</span>.<span class="title">Interface</span></span> &#123;</span><br><span class="line">  <span class="keyword">return</span> &amp;reverse&#123;data&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在可以这样做：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">lst := []<span class="keyword">int</span>&#123;<span class="number">4</span>, <span class="number">5</span>, <span class="number">2</span>, <span class="number">8</span>, <span class="number">1</span>, <span class="number">9</span>, <span class="number">3</span>&#125;</span><br><span class="line">sort.Sort(sort.Reverse(sort.IntSlice(lst)))</span><br><span class="line">fmt.Println(lst)</span><br><span class="line"><span class="comment">// 打印：[9 8 5 4 3 2 1]</span></span><br></pre></td></tr></table></figure>
+
+<p>这里需要理解的关键点是，调用 <code>sort.Reverse</code> 本身并不对任何东西进行排序或反转。它可以被看作是一个<strong>高阶函数</strong>：它产生一个值，包装给它的接口并调整其函数实现。对 <code>sort.Sort</code> 的调用是排序发生的地方。</p>
+<h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><ul>
+<li><p><a href="https://stackoverflow.com/questions/24537443/meaning-of-a-struct-with-embedded-anonymous-interface" target="_blank" rel="noopener">Meaning of a struct with embedded anonymous interface?</a></p>
+</li>
+<li><p><a href="https://eli.thegreenplace.net/2020/embedding-in-go-part-3-interfaces-in-structs/" target="_blank" rel="noopener">Embedding in Go: Part 3 - interfaces in structs</a></p>
+</li>
+</ul>
+
+        
+        <br />
+        <div id="comment-container">
+        </div>
+        <div id="disqus_thread"></div>
+
+        <div id="lv-container">
+        </div>
+
+    </div>
+</div>
+
+    </div>
+</div>
+
+
+<footer class="footer">
+    <ul class="list-inline text-center">
+        
+        
+
+        
+
+        
+
+        
+        <li>
+            <a target="_blank"  href="https://github.com/linxuyalun">
+                            <span class="fa-stack fa-lg">
+                                <i class="iconfont icon-github"></i>
+                            </span>
+            </a>
+        </li>
+        
+
+        
+        <li>
+            <a target="_blank"  href="https://www.linkedin.com/in/亚伦-林许-b06aa5164">
+                            <span class="fa-stack fa-lg">
+                                <i class="iconfont icon-linkedin"></i>
+                            </span>
+            </a>
+        </li>
+        
+
+    </ul>
+    
+    <p>
+        <span>/</span>
+        
+        <span><a href="https://blog.thrimbda.com/" target="_blank" rel="noopener">Thrimbda&#39;s blog</a></span>
+        <span>/</span>
+        
+        <span><a href="https://vanderchen.github.io/" target="_blank" rel="noopener">VanderChen&#39;s Dev Blog</a></span>
+        <span>/</span>
+        
+    </p>
+    
+    <p>
+        <span id="busuanzi_container_site_pv">
+            <span id="busuanzi_value_site_pv"></span>PV
+        </span>
+        <span id="busuanzi_container_site_uv">
+            <span id="busuanzi_value_site_uv"></span>UV
+        </span>
+        Created By <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>  Theme <a href="https://github.com/aircloud/hexo-theme-aircloud" target="_blank" rel="noopener">AirCloud</a></p>
+</footer>
+
+
+
+
+</body>
+
+<script>
+    // We expose some of the variables needed by the front end
+    window.hexo_search_path = ""
+    window.hexo_root = "/"
+    window.isPost = true
+</script>
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+
+<script src="/js/index.js"></script>
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+</html>
